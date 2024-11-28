@@ -103,24 +103,29 @@ export default function MovieSearch({ user }) {
   async function handleSearch() {
     try {
       const moviesCollection = collection(db, "movies");
-      const q = query(
-        moviesCollection,
-        orderBy("title"),
-        startAt(search),
-        endAt(search + "\uf8ff")
-      );
+      const q = query(moviesCollection, orderBy("title")); // Get all movies ordered by title
       const querySnapshot = await getDocs(q);
+    
       const movieData = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      console.log("Search results:", movieData);
-      setMovies(movieData);
+    
+      // Remove spaces from both the search input and movie titles before comparing
+      const formattedSearch = search.replace(/\s+/g, '').toLowerCase(); // Remove spaces and convert to lowercase
+      
+      const filteredMovies = movieData.filter((movie) =>
+        movie.title.replace(/\s+/g, '').toLowerCase().includes(formattedSearch) // Remove spaces from movie title and compare
+      );
+    
+      console.log("Search results:", filteredMovies);
+      setMovies(filteredMovies);
     } catch (error) {
       console.error("Error fetching search results:", error);
     }
   }
-
+  
+  
   function handleReviewChange(movieId, event) {
     setReviews((prevReviews) => ({
       ...prevReviews,
