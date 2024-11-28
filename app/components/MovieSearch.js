@@ -29,7 +29,7 @@ export default function MovieSearch({ user }) {
       fetchMovies(); 
       fetchFavorites(); 
     }
-  }, [filter, user, fetchMovies, fetchFavorites]);
+  }, [filter, user]);
 
   async function fetchMovies() {
     try {
