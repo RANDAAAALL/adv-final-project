@@ -4,11 +4,21 @@ import { useRouter } from "next/navigation"
 import { Loader } from 'lucide-react'
 import { createUserWithEmailAndPassword } from "firebase/auth"
 import { app, auth } from "../firebaseConfig"
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+} from "firebase/firestore";
 
 export default function SignUpPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+
+  const db = getFirestore(app);
 
   async function onSubmit(event) {
     event.preventDefault()
@@ -27,9 +37,16 @@ export default function SignUpPage() {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-      const user = userCredential.user 
-      console.log(user.uid) 
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await addDoc(collection(db, "users"), {
+        uid: user.uid,
+        email: user.email,
+        dateTimeStamp: new Date().toDateString()
+      });
+
+      console.log(user.uid, user.email); 
       router.push("/") 
     } catch (error) {
       setError("Something went wrong. Please try again.")

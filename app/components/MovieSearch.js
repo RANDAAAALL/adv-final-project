@@ -246,7 +246,6 @@ export default function MovieSearch({ user }) {
                 >
                   {favorites.has(movie.id) ? "Remove Favorite" : "Add to Favorite"}
                 </button>
-
                 <div className="mt-4">
                   <textarea
                     value={reviews[movie.id] || ""}
