@@ -9,14 +9,16 @@ import {
   getDocs,
   addDoc,
   deleteDoc,
+  updateDoc,
+  doc,
+  getDoc,
   orderBy,
-  startAt,
-  endAt,
 } from "firebase/firestore";
 import { app } from "../firebaseConfig";
 
 export default function MovieSearch({ user }) {
-  const [movies, setMovies] = useState([]); 
+  const [movies, setMovies] = useState([]);
+  const [isLoading, setIsLoading] = useState(false); 
   const [search, setSearch] = useState(""); 
   const [filter, setFilter] = useState("All");
   const [favorites, setFavorites] = useState(new Set()); 
@@ -26,11 +28,15 @@ export default function MovieSearch({ user }) {
 
   useEffect(() => {
     if (user) {
-      fetchMovies(); 
-      fetchFavorites(); 
+      setIsLoading(true);
+      setTimeout(() => {
+        fetchMovies(); 
+        fetchFavorites(); 
+      }, 2000);
     }
   }, [filter, user]);
 
+  // Fetch movies based on filter
   async function fetchMovies() {
     try {
       const moviesCollection = collection(db, "movies"); 
@@ -47,11 +53,14 @@ export default function MovieSearch({ user }) {
       }));
       console.log("Fetched movies:", movieData); 
       setMovies(movieData); 
+      setIsLoading(false);
     } catch (error) {
       console.error("Error fetching movies:", error);
+      setIsLoading(false);
     }
   }
 
+  // Fetch favorite movies for the user
   async function fetchFavorites() {
     if (!user) return;
 
@@ -68,6 +77,7 @@ export default function MovieSearch({ user }) {
     }
   }
 
+  // Toggle favorite status of a movie
   async function toggleFavorite(movieId) {
     if (!user) {
       console.error("User not authenticated.");
@@ -100,54 +110,80 @@ export default function MovieSearch({ user }) {
     }
   }
 
+  // Search function for movies
   async function handleSearch() {
-    try {
-      const moviesCollection = collection(db, "movies");
-      const q = query(moviesCollection, orderBy("title")); // Get all movies ordered by title
-      const querySnapshot = await getDocs(q);
-    
-      const movieData = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-    
-      // Remove spaces from both the search input and movie titles before comparing
-      const formattedSearch = search.replace(/\s+/g, '').toLowerCase(); // Remove spaces and convert to lowercase
-      
-      const filteredMovies = movieData.filter((movie) =>
-        movie.title.replace(/\s+/g, '').toLowerCase().includes(formattedSearch) // Remove spaces from movie title and compare
-      );
-    
-      console.log("Search results:", filteredMovies);
-      setMovies(filteredMovies);
-    } catch (error) {
-      console.error("Error fetching search results:", error);
-    }
+    setIsLoading(true); 
+
+    setTimeout(async () => {
+      try {
+        const moviesCollection = collection(db, "movies");
+        const q = query(moviesCollection, orderBy("title"));
+        const querySnapshot = await getDocs(q);
+
+        const movieData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        const formattedSearch = search.replace(/\s+/g, '').toLowerCase(); 
+
+        const filteredMovies = movieData.filter((movie) =>
+          movie.title.replace(/\s+/g, '').toLowerCase().includes(formattedSearch)
+        );
+
+        console.log("Search results:", filteredMovies);
+        setMovies(filteredMovies);
+      } catch (error) {
+        console.error("Error fetching search results:", error);
+      } finally {
+        setIsLoading(false); 
+      }
+    }, 2000); 
   }
-  
-  
+
+  // Handle review text change for a specific movie
   function handleReviewChange(movieId, event) {
     setReviews((prevReviews) => ({
       ...prevReviews,
-      [movieId]: event.target.value, 
+      [movieId]: event.target.value, // Update the review for the specific movie
     }));
   }
 
+  // Add a review for a specific movie
   async function handleAddReview(movieId) {
-    const reviewText = reviews[movieId]; 
+    const reviewText = reviews[movieId];
     if (!reviewText) return;
 
     try {
+      // Add the review to the 'reviews' collection
       await addDoc(collection(db, "reviews"), {
         movieId,
         review: reviewText,
         userId: user.uid,
         timestamp: new Date(),
       });
+
+      // Update the reviewsCount in the 'movies' collection
+      const movieRef = doc(db, "movies", movieId);
+      const movieDoc = await getDoc(movieRef);
+
+      if (movieDoc.exists()) {
+        // Get current review count or initialize to 0
+        const currentReviewsCount = movieDoc.data().reviewsCount || 0;
+
+        // Increment the review count by 1
+        await updateDoc(movieRef, {
+          reviewsCount: currentReviewsCount + 1,
+        });
+      }
+
+      // Clear the review input field after submitting
       setReviews((prevReviews) => ({
         ...prevReviews,
-        [movieId]: "",
+        [movieId]: "",  // Clear review field for this movie
       }));
+
+      console.log(`Review for movie ${movieId} added successfully!`);
     } catch (error) {
       console.error("Error adding review:", error);
     }
@@ -190,44 +226,47 @@ export default function MovieSearch({ user }) {
           </select>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-        {movies.length === 0 ? (
-          <p>No movies found.</p>
-        ) : (
-          movies.map((movie) => (
-            <div key={movie.id} className="bg-gray-800 p-4 rounded-md">
-              <h3 className="text-xl font-bold">{movie.title}</h3>
-              <p className="text-sm text-gray-400">Genre: {movie.genre}</p>
-              <p className="text-sm">Rating: {movie.rating}</p>
-              <p className="text-sm">Year: {movie.releaseYear}</p>
-              <p className="text-sm">Reviews: {movie.reviewsCount || 0}</p>
-
-              <button
-                onClick={() => toggleFavorite(movie.id)}
-                className={`mt-2 p-2 rounded-md ${favorites.has(movie.id) ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 hover:bg-gray-700"}`}
-              >
-                {favorites.has(movie.id) ? "Remove Favorite" : "Add to Favorite"}
-              </button>
-
-              <div className="mt-4">
-                <textarea
-                  value={reviews[movie.id] || ""}
-                  onChange={(e) => handleReviewChange(movie.id, e)}
-                  placeholder="Add a review..."
-                  className="mt-2 p-2 w-full h-20 bg-gray-700 border border-gray-600 rounded-md text-white"
-                />
+      {isLoading ? (
+        <div className="flex justify-center items-center text-slate-50 text-3xl font-bold min-h-screen">Loading....</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+          {movies.length === 0 ? (
+            <p>No movies found.</p>
+          ) : (
+            movies.map((movie) => (
+              <div key={movie.id} className="bg-gray-800 p-4 rounded-md">
+                <h3 className="text-xl font-bold">{movie.title}</h3>
+                <p className="text-sm text-gray-400">Genre: {movie.genre}</p>
+                <p className="text-sm">Rating: {movie.rating}</p>
+                <p className="text-sm">Year: {movie.releaseYear}</p>
+                <p className="text-sm">Reviews: {movie.reviewsCount || 0}</p>
                 <button
-                  onClick={() => handleAddReview(movie.id)}
-                  className="mt-2 p-2 bg-green-600 rounded-md hover:bg-green-700"
+                  onClick={() => toggleFavorite(movie.id)}
+                  className={`mt-2 p-2 rounded-md ${favorites.has(movie.id) ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 hover:bg-gray-700"}`}
                 >
-                  Add Review
+                  {favorites.has(movie.id) ? "Remove Favorite" : "Add to Favorite"}
                 </button>
+
+                <div className="mt-4">
+                  <textarea
+                    value={reviews[movie.id] || ""}
+                    onChange={(e) => handleReviewChange(movie.id, e)} // Call the review change handler
+                    placeholder="Add a review..."
+                    className="mt-2 p-2 w-full h-20 bg-gray-700 border border-gray-600 rounded-md text-white"
+                  />
+                  <button
+                    onClick={() => handleAddReview(movie.id)}
+                    className="mt-2 p-2 bg-green-600 rounded-md hover:bg-green-700"
+                  >
+                    Add Review
+                  </button>
+                </div>
               </div>
-            </div>
-          ))
-        )}
-      </div>
+            ))
+          )}       
+        </div>
+      )}
     </div>
   );
 }
+
