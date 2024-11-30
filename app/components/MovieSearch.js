@@ -212,6 +212,8 @@ export default function MovieSearch({ user }) {
             <option value="Drama">Drama</option>
             <option value="Horror">Horror</option>
             <option value="Comedy">Comedy</option>
+            <option value="Sci-Fi">Sci-Fi</option>
+            <option value="Crime">Crime</option>
           </select>
         </div>
       </div>
