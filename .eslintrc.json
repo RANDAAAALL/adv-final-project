@@ -1,0 +1,7 @@
+{
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "react-hooks/exhaustive-deps": "off",  // Disable the warning for missing dependencies in useEffect
+    "react/no-unescaped-entities": "off"   // Disable the warning for unescaped characters
+  }
+}
