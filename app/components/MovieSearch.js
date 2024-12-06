@@ -232,6 +232,13 @@ export default function MovieSearch({ user }) {
                 key={movie.id}
                 className="bg-gray-900 p-6 rounded-lg shadow-lg"
               >
+                {movie.ImageUrl && (
+                  <img
+                    src={movie.ImageUrl}
+                    alt={movie.title}
+                    className="w-full h-64 object-cover rounded-md mb-4"
+                  />
+                )}
                 <h2 className="text-2xl font-semibold text-indigo-400">
                   {movie.title}
                 </h2>
@@ -249,7 +256,7 @@ export default function MovieSearch({ user }) {
                 </p>
                 <textarea
                   className="mt-4 w-full p-2 bg-gray-800 text-gray-300 rounded-md placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                  style={{resize: "none"}}
+                  style={{ resize: "none" }}
                   placeholder="Add your review..."
                   value={reviews[movie.id] || ""}
                   onChange={(e) => handleReviewChange(movie.id, e)}
@@ -264,11 +271,11 @@ export default function MovieSearch({ user }) {
                   onClick={() => toggleFavorite(movie.id)}
                   className={`mt-4 w-full py-2 rounded-md ${
                     favorites.has(movie.id)
-                      ? "bg-red-500 hover:bg-red-600"
-                      : "bg-indigo-500 hover:bg-indigo-600"
-                  } transition`}
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-green-600 hover:bg-green-700"
+                  } text-white`}
                 >
-                  {favorites.has(movie.id) ? "❤️ Unfavorite" : "🤍 Favorite"}
+                  {favorites.has(movie.id) ? "Remove from Favorites" : "Add to Favorites"}
                 </button>
               </div>
             ))

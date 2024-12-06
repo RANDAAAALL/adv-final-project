@@ -86,6 +86,13 @@ export default function FavoritesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
               {favoriteMovies.map((movie) => (
                 <div key={movie.id} className="bg-gray-800 p-4 rounded-md">
+                  {movie.ImageUrl && (
+                  <img
+                    src={movie.ImageUrl}
+                    alt={movie.title}
+                    className="w-full h-64 object-cover rounded-md mb-4"
+                  />
+                )}
                   <h3 className="text-xl font-bold">{movie.title}</h3>
                   <p className="text-sm text-gray-400">Genre: {movie.genre}</p>
                   <p className="text-sm">Rating: {movie.rating}</p>
